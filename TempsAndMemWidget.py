@@ -40,45 +40,38 @@ class MainWindow(QtWidgets.QWidget):
         self.move(0, 970)
 
     def update_temp(self):
-        # Obtiene la temperatura de la GPU
-        gpuTemp = get_gpu_temp()
-
-        # Obtiene la temperatura de la CPU
-        cpuTemp = get_cpu_temp()
+        # Obtiene las temperaturas de la GPU y CPU en un diccionario
+        temps = get_temps()
 
         # Obtiene el uso de la RAM
         memoryUsage = get_ram_usage()
 
         if gpuTemp:
             # Establece la etiqueta para el texto de la temperatura
-            self.label.setText(f'GPU: {str(gpuTemp)[:-2]}ºC\nCPU: {str(cpuTemp)[:-2]}ºC\nRAM: {memoryUsage:.0f} MB')
+            self.label.setText(f'GPU: {str(temps["GPU"])[:-2]}ºC\nCPU: {str(temps["CPU"])[:-2]}ºC\nRAM: {memoryUsage:.0f} MB')
 
-def get_gpu_temp():
-    temperature_infos = []
+def get_temps():
     try:
         # Ejecuta el comando WMI para listar los sensores y obtiene el resultado
         w = wmi.WMI(namespace="root\OpenHardwareMonitor")
         temperature_infos = w.Sensor()
+        
+        # Inicializa el diccionario de temperaturas
+        temps = {'GPU': None, 'CPU': None}
 
-        # Analiza el resultado filtrando por 'sensor.Name' y 'sensor.SensorType' para encontrar la temperatura 
+        # Analiza el resultado filtrando por 'sensor.Name' y 'sensor.SensorType' para encontrar la temperatura
+        '''
+        Lo ideal para monitorizar es filtrar con 'sensor.Name' y 'sensor.SensorType' especificando
+        el sensor exacto y el tipo del mismo como se ve a continuación.
+        '''
         for sensor in temperature_infos:
-            if sensor.Name == u'GPU Core' and sensor.SensorType == u'Temperature': # El ideal para monitorizar es 'GPU Core' y añadimos otro filtro que
-                return sensor.Value                                                # sería el de 'Temperature', ya que sino encontraría otro sensor
-    except Exception as e:
-        print(f'Error occurred: {e}')
-    return None
-
-def get_cpu_temp():
-    temperature_infos = []
-    try:
-        # Ejecuta el comando WMI para listar los sensores y obtiene el resultado
-        w = wmi.WMI(namespace="root\OpenHardwareMonitor")
-        temperature_infos = w.Sensor()
-
-        # Analiza el resultado filtrando por 'sensor.Name' y 'sensor.SensorType' para encontrar la temperatura 
-        for sensor in temperature_infos:
-            if sensor.Name == u'CPU Package' and sensor.SensorType == u'Temperature': # El ideal para monitorizar es 'CPU Package' y añadimos otro filtro
-                return sensor.Value                                                   # que sería el de 'Temperature', ya que sino encontraría otro sensor
+            if sensor.Name == u'GPU Core' and sensor.SensorType == u'Temperature':
+                temps['GPU'] = sensor.Value
+            elif sensor.Name == u'CPU Package' and sensor.SensorType == u'Temperature':
+                temps['CPU'] = sensor.Value
+        
+        # Devuelve el diccionario con las temperaturas de la GPU y CPU
+        return temps
     except Exception as e:
         print(f'Error occurred: {e}')
     return None
